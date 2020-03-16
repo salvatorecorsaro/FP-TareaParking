@@ -13,44 +13,65 @@ public class Car implements Runnable {
 
     @Override
     public void run() {
+
+        approachTheParking();
+        enterTheParking();
+    }
+
+    private void approachTheParking() {
+        System.out.printf("Car number %d at the entrance of the parking \n", carNumber + 1);
+
         try {
             waitBeforeTryToPark();
         } catch (InterruptedException e) {
             e.printStackTrace();
         }
-        System.out.printf("Car #%d drive to parking \n", carNumber);
+    }
 
+    private void enterTheParking() {
         try {
-            Main.barrera.acquire();
-
-            int parkingNumber = -1;
-
-            synchronized (Main.parkingStatus) {
-                for (int i = 0; i < Main.parkingSize; i++) {
-                    if (!Main.parkingStatus[i]) {
-                        Main.parkingStatus[i] = true;
-                        parkingNumber = i;
-                        System.out.printf("Car #%d Parked on %d place.\n", carNumber, i);
-                        break;
-                    }
-                }
-            }
-
-            try {
-                waitBeforeExitParking();
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            }
-
-            synchronized (Main.parkingStatus) {
-                Main.parkingStatus[parkingNumber] = false;
-            }
-
-            Main.barrera.release();
-            System.out.printf("Car #%d leave the parking.\n", carNumber);
+            int parkingNumber = moveToFreeParkingSpot();
+            waitBeforeExitParking();
+            leaveTheParking(parkingNumber);
 
         } catch (InterruptedException e) {
         }
+    }
+
+    private void leaveTheParking(int parkingNumber) {
+        synchronized (Main.parkingStatus) {
+            Main.parkingStatus[parkingNumber] = false;
+        }
+
+        Main.barrera.release();
+        System.out.printf("Car number %d has left the parking.\n", carNumber + 1);
+    }
+
+    private int moveToFreeParkingSpot() throws InterruptedException {
+        Main.barrera.acquire();
+
+        int parkingNumber = -1;
+
+        synchronized (Main.parkingStatus) {
+            for (int i = 0; i < Main.parkingSize; i++) {
+                if (!Main.parkingStatus[i]) {
+                    parkingNumber = parkInThePosition(i);
+                    break;
+                }
+            }
+        }
+        return parkingNumber;
+    }
+
+
+
+    private int parkInThePosition(int i) {
+        int parkingNumber;
+        Main.parkingStatus[i] = true;
+        parkingNumber = i;
+        System.out.printf("Car number %d has parked\n", carNumber + 1);
+        return parkingNumber;
+
     }
 
     private void waitBeforeExitParking() throws InterruptedException {
